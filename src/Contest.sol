@@ -5,12 +5,13 @@ import "./VRFv2Consumer.sol";
 
 // update struct
 
-//      github - git -> create a new repo and put these file in with terminal
+// <--> github - git -> create a new repo and put these file in with terminal
 //      testing
 // <--> let contest_creation_price attach to eth current price with 1/100 may be
-//      find bugs and fix it
+// <--> find bugs and fix it
 //      learn how to hack it
 //      catch events
+//      interface
 
 /**
     @title Lottery Contract
@@ -126,7 +127,7 @@ contract Contest {
         string memory _contestName,
         uint256 _maxContestant,
         uint256 _ticketPrice
-    ) public payable returns (bool) {
+    ) public payable {
         if (isContestExist[_contestName])
             revert ContestAlreadyExist(_contestName);
         if (msg.value != CONTEST_CREATION_PRICE)
@@ -164,7 +165,6 @@ contract Contest {
             _ticketPrice
         );
         payable(CONTRACT_OWNER).transfer(msg.value);
-        return true;
     }
 
     /**

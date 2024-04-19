@@ -18,7 +18,7 @@ async function main() {
 	);
 	contract.options.data = bytecode.object;
 	contract.handleRevert = true;
-
+	/*
 	const createContest = contract.methods.createContest(
 		"a",
 		3,
@@ -28,7 +28,8 @@ async function main() {
 		.send({from: signer.address, value: 1e9})
 		.on("transactionHash", (txHash) => {
 			console.log(txHash);
-		});
+		});*/
+	console.log(await contract);
 }
 
 main().catch((err) => {
