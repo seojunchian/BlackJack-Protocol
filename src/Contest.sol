@@ -25,7 +25,6 @@ contract Contest {
     // checked
     address payable CONTRACT_OWNER =
         payable(0xcb2359487D53Db7a6886b1908293d34792901eE1);
-    // checked
 
     // checked
     event ContestCreated(
