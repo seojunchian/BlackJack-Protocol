@@ -3,66 +3,15 @@ pragma solidity ^0.8.24;
 
 import {VRFv2Consumer} from "../Imports.sol";
 
-/**
- * @title Lottery Contract
- *     @notice When a contest's number of contestants is full its automatically will draw the number and select the winner and send amount of money won.
- *     @notice A Contestant can buy more than one ticket.
- */
 contract Contest {
     uint256 public CONTEST_CREATION_PRICE = 1e9;
     address payable CONTRACT_OWNER =
         payable(0xcb2359487D53Db7a6886b1908293d34792901eE1);
 
-    error ContestAlreadyExist(string contestName);
-
-    error ContestIsntExist(string contestName);
-
-    error InvalidContestCreationPrice(
-        uint256 receivedPrice,
-        uint256 creationPrice
-    );
-
-    error InvalidTicketPrice(
-        string contestName,
-        uint256 receivedPrice,
-        uint256 ticketPrice
-    );
-
-    error ContestantIsntInTheContest(
-        address contestantAddress,
-        string contestName
-    );
-
-    error ContestCompleted(string message);
-
-    // assert level true
     uint64 subscriptionId = 11139;
-    /* VRFv2Consumer(subscriptionId)*/
-
     constructor() {}
-
-    // all the struct elements will be updated in the right place
-    struct ContestStruct {
-        address owner;
-        string name;
-        uint256 maxContestant;
-        uint256 ticketPrice;
-        uint256 ticketCount;
-        address[] contestantsAddresses;
-        uint256 collectedPrice;
-        address winner;
-    }
-
-    ContestStruct[] public contests;
-
-    // all the struct elements will be updated in the right place
-    struct ContestantStruct {
-        string name;
-        address contestantAddress;
-    }
-
-    ContestantStruct[] public contestants;
-
+}
+/*
     // is mapping
     mapping(string contestName => bool isExist) public isContestExist;
     mapping(address contestantAddress => mapping(string contestName => bool isIn))
@@ -80,16 +29,7 @@ contract Contest {
 
     // get mapping contestant
     mapping(address contesantAddress => mapping(string contestName => uint256 ticketCount))
-        public getContestantsTicketsCount;
 
-    /**
-     * @notice Create contest .
-     *     @param _contestName Name of the contest.
-     *     @param _maxContestant Maximum contestant you want in the contest. When its reach full its gonna execute lottery function by itself.
-     *     @param _ticketPrice Price of buying a ticket in this contest. Can buy more than one.
-     *     @dev Contests query by their names so only 1 contest could be in the same name. Can't create 2 contest with the same name.
-     *     @dev Contest creation price is 1/1000 ether price.
-     */
     function createContest(
         string memory _contestName,
         uint256 _maxContestant,
@@ -127,22 +67,9 @@ contract Contest {
         getContestIndexFromContestName[_contestName] = getContestIndexFromZero[
             0
         ];
-        emit ContestCreated(
-            msg.sender,
-            _contestName,
-            _maxContestant,
-            _ticketPrice
-        );
         payable(CONTRACT_OWNER).transfer(msg.value);
     }
 
-    /**
-     * @notice Purchase tickets from a contest as many as you want.
-     *     @param _contestName Ticket to be purchased from the contest.
-     *     @param _contestantName Contestant name to add to contestants.
-     *     @dev Require contest name to query is contest exist.
-     *     @dev msg.value should be same amount of ticket price of the contest * number of tickets to purchase.
-     */
     function purchaseTicket(
         string memory _contestName,
         string memory _contestantName,
@@ -185,8 +112,6 @@ contract Contest {
         ] = getContestantIndexFromZero[0];
         getContestantsTicketsCount[msg.sender][_contestName] += ticketAmount;
 
-        emit TicketPurchased(_contestName, msg.sender, ticketAmount);
-
         if (
             contests[contestIndex].maxContestant ==
             contests[contestIndex].contestantsAddresses.length
@@ -197,12 +122,6 @@ contract Contest {
         payable(contests[contestIndex].owner).transfer(msg.value / 10);
     }
 
-    /**
-     * @notice It runs automatically.
-     *     @param _contestName Name of the contest to draw the winner of it.
-     *     @dev Require contest name to query is contest exist.
-     *     @dev msg.value should be same amount of ticket price of the contest * number of tickets to purchase.
-     */
     function selectLotteryWinner(
         string memory _contestName
     ) private returns (address winnerAddress) {
@@ -223,7 +142,6 @@ contract Contest {
             ) {
                 winnerAddress = _contestantsAddresses[i];
                 contests[contestIndex].winner = winnerAddress;
-                emit ContestWinner(_contestName, winnerAddress);
                 payable(winnerAddress).transfer(
                     contests[contestIndex].collectedPrice
                 );
@@ -352,3 +270,4 @@ contract Contest {
         return contestants[contestantIndex].name;
     }
 }
+*/

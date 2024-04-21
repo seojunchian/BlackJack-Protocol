@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
 /*
 event ContestCreated(
     address owner,
@@ -13,4 +16,26 @@ event TicketPurchased(
 );
 
 event ContestWinner(string contestName, address winner);
+
+error ContestAlreadyExist(string contestName);
+
+error ContestIsntExist(string contestName);
+
+error InvalidContestCreationPrice(
+    uint256 receivedPrice,
+    uint256 creationPrice
+);
+
+error InvalidTicketPrice(
+    string contestName,
+    uint256 receivedPrice,
+    uint256 ticketPrice
+);
+
+error ContestantIsntInTheContest(
+    address contestantAddress,
+    string contestName
+);
+
+error ContestCompleted(string message);
 */
