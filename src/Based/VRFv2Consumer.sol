@@ -2,9 +2,9 @@
 // An example of a consumer contract that relies on a subscription for funding.
 pragma solidity ^0.8.24;
 
-import {VRFCoordinatorV2Interface} from "../node_modules/@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
-import {VRFConsumerBaseV2} from "../node_modules/@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
-import {ConfirmedOwner} from "../node_modules/@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
+import {VRFCoordinatorV2Interface} from "lib/chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
+import {VRFConsumerBaseV2} from "lib/chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
+import {ConfirmedOwner} from "lib/chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 
 /**
  * Request testnet LINK and ETH here: https://faucets.chain.link/
@@ -16,7 +16,6 @@ import {ConfirmedOwner} from "../node_modules/@chainlink/contracts/src/v0.8/shar
  * THIS IS AN EXAMPLE CONTRACT THAT USES UN-AUDITED CODE.
  * DO NOT USE THIS CODE IN PRODUCTION.
  */
-
 contract VRFv2Consumer is VRFConsumerBaseV2, ConfirmedOwner {
     event RequestSent(uint256 requestId, uint32 numWords);
     event RequestFulfilled(uint256 requestId, uint256[] randomWords);
@@ -26,6 +25,7 @@ contract VRFv2Consumer is VRFConsumerBaseV2, ConfirmedOwner {
         bool exists; // whether a requestId exists
         uint256[] randomWords;
     }
+
     mapping(uint256 => RequestStatus)
         public s_requests; /* requestId --> requestStatus */
     VRFCoordinatorV2Interface COORDINATOR;
