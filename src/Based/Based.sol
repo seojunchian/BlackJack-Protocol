@@ -1,15 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {VRFv2Consumer} from "../Imports.sol";
-
-contract Contest {
+contract Based {
     uint256 public CONTEST_CREATION_PRICE = 1e9;
     address payable CONTRACT_OWNER =
         payable(0xcb2359487D53Db7a6886b1908293d34792901eE1);
-
-    uint64 subscriptionId = 11139;
-    constructor() {}
 }
 /*
     // is mapping
