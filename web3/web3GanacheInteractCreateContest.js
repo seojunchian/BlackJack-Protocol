@@ -1,5 +1,5 @@
 const {Web3} = require("web3");
-const {abi, bytecode} = require("../out/Contest.sol/Contest.json");
+const {abi, bytecode} = require("../out/TwentyOne.sol/TwentyOne.json");
 require("dotenv").config();
 
 async function main() {
@@ -14,22 +14,20 @@ async function main() {
 
 	const contract = new web3.eth.Contract(
 		abi,
-		"0x2085a4c1379Ba8770b7ab6eC2Ad86dC268B1A2dA"
+		"0x161d68aD47DeE62bb16E9f372F2285e5F753c1d7"
 	);
 	contract.options.data = bytecode.object;
 	contract.handleRevert = true;
-	/*
+
 	const createContest = contract.methods.createContest(
 		"a",
-		3,
 		web3.utils.toWei("1", "ether")
 	);
 	createContest
-		.send({from: signer.address, value: 1e9})
+		.send({from: signer.address, value: 1e13})
 		.on("transactionHash", (txHash) => {
 			console.log(txHash);
-		});*/
-	console.log(await contract);
+		});
 }
 
 main().catch((err) => {
