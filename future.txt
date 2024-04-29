@@ -7,5 +7,3 @@
 // <--> find bugs and fix it
 //      learn how to hack it
 //      catch events
-//      interface
-//      contest creation price will attach to eth price for a specific percentage

@@ -12,20 +12,27 @@ async function main() {
 	);
 	web3.eth.accounts.wallet.add(signer);
 
+	const account2 = web3.eth.accounts.privateKeyToAccount(
+		"0x591dedcab507b251afe4cae36c415ba1e1c8f723782af5ea3d6dde517606362a"
+	);
+	web3.eth.accounts.wallet.add(account2);
+
+	const account3 = web3.eth.accounts.privateKeyToAccount(
+		"0x86cf39ebeb45d87ff84ca3f4771646c7b61ecc44b66619df2e21e6e863f65a65"
+	);
+	web3.eth.accounts.wallet.add(account3);
+
 	const contract = new web3.eth.Contract(
 		abi,
-		"0x161d68aD47DeE62bb16E9f372F2285e5F753c1d7"
+		"0x21B9bDe642C0F2Ed6C620528E4e2e3D4D5DDA139"
 	);
 	contract.options.data = bytecode.object;
 	contract.handleRevert = true;
 
-	const createContest = contract.methods.createContest(
-		"a",
-		web3.utils.toWei("1", "ether")
-	);
-	createContest
-		.send({from: signer.address, value: 1e13})
-		.on("transactionHash", (txHash) => {
+	const enterContest = contract.methods.drawCard(12);
+	enterContest
+		.send({from: account2.address})
+		.on("transactionHash", function (txHash) {
 			console.log(txHash);
 		});
 }

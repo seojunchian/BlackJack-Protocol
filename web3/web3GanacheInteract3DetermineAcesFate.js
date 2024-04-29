@@ -1,5 +1,5 @@
 const {Web3} = require("web3");
-const {abi, bytecode} = require("../out/Contest.sol/Contest.json");
+const {abi, bytecode} = require("../out/TwentyOne.sol/TwentyOne.json");
 require("dotenv").config();
 
 async function main() {
@@ -22,27 +22,17 @@ async function main() {
 	);
 	web3.eth.accounts.wallet.add(account3);
 
-	const account4 = web3.eth.accounts.privateKeyToAccount(
-		"0x0345023296d947bb3c02189945900a19ff4ab90a801cebda8984c9b9845a01a9"
-	);
-	web3.eth.accounts.wallet.add(account4);
-
 	const contract = new web3.eth.Contract(
 		abi,
-		"0x2085a4c1379Ba8770b7ab6eC2Ad86dC268B1A2dA"
+		"0x0e10C3Ed98B71027E44CfB5B49fFD458F9119ef8"
 	);
 	contract.options.data = bytecode.object;
 	contract.handleRevert = true;
 
-	/*await contract.methods
-		.contests(0)
-		.call({from: signer.address})
-		.then(console.log);*/
-
-	const purchaseTicket = contract.methods.purchaseTicket("a", "a", 1);
-	purchaseTicket
-		.send({from: account4.address, value: web3.utils.toWei("1", "ether")})
-		.on("transactionHash", (txHash) => {
+	const determineAcesFate = contract.methods.determineAcesFate();
+	determineAcesFate
+		.send({from: signer.address})
+		.on("transactionHash", function (txHash) {
 			console.log(txHash);
 		});
 }
