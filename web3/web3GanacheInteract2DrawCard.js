@@ -24,17 +24,20 @@ async function main() {
 
 	const contract = new web3.eth.Contract(
 		abi,
-		"0x21B9bDe642C0F2Ed6C620528E4e2e3D4D5DDA139"
+		"0x38a31E099D9053C66BB4A855CFddA714fbCD0C75"
 	);
 	contract.options.data = bytecode.object;
 	contract.handleRevert = true;
 
-	const enterContest = contract.methods.drawCard(12);
+	const enterContest =
+		contract.methods.drawCard(
+			51865472986972068993065971745721016025765587866129469379236543717557912348769n
+		);
 	enterContest
 		.send({from: account2.address})
-		.on("transactionHash", function (txHash) {
-			console.log(txHash);
-		});
+		.on("receipt", (receipt) =>
+			console.log(receipt.events.ContestantDrawedACard.returnValues[0])
+		);
 }
 
 main().catch((err) => {

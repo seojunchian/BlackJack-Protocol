@@ -24,13 +24,17 @@ async function main() {
 
 	const contract = new web3.eth.Contract(
 		abi,
-		"0x21B9bDe642C0F2Ed6C620528E4e2e3D4D5DDA139"
+		"0x38a31E099D9053C66BB4A855CFddA714fbCD0C75"
 	);
 	contract.options.data = bytecode.object;
 	contract.handleRevert = true;
 
-	const createContest = contract.methods.createContest(1e1);
-	createContest.send({from: signer.address, value: 1e13}).then(console.log);
+	const createContest = contract.methods.createContest(1e18);
+	createContest
+		.send({from: signer.address, value: 1e13})
+		.then((result) =>
+			console.log(result.events.ContestCreated.returnValues)
+		);
 }
 
 main().catch((err) => {

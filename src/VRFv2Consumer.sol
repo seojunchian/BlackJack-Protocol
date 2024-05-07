@@ -2,9 +2,9 @@
 // An example of a consumer contract that relies on a subscription for funding.
 pragma solidity ^0.8.24;
 
-import {VRFCoordinatorV2Interface} from "../../lib/chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
-import {VRFConsumerBaseV2} from "../../lib/chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
-import {ConfirmedOwner} from "../../lib/chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
+import {VRFCoordinatorV2Interface} from "lib/chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
+import {VRFConsumerBaseV2} from "lib/chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
+import {ConfirmedOwner} from "lib/chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 
 /**
  * Request testnet LINK and ETH here: https://faucets.chain.link/
@@ -93,7 +93,6 @@ contract VRFv2Consumer is VRFConsumerBaseV2, ConfirmedOwner {
         });
         requestIds.push(requestId);
         lastRequestId = requestId;
-        emit RequestSent(requestId, numWords);
         return requestId;
     }
 
