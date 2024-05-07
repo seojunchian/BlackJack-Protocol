@@ -62,12 +62,6 @@ contract TwentyOne is Based {
         bool end;
     }
     TwentyOneContest[] public twentyOneContests;
-    struct TwentyOneContestant {
-        address contestant;
-        uint256[] drawedNumbers;
-        bool isTurn;
-        bool isFinished;
-    }
     /******************** CONSTRUCTOR ********************/
     constructor() /*VRFv2ConsumerBase(11139) */ {
 
@@ -260,6 +254,7 @@ contract TwentyOne is Based {
         /*************** EVENT ***************/
         emit ContestantDrawedACard(_drawedNumber);
         /*************** TRANSFER ***************/
+        determineWinner(_rank);
     }
     function determineAcesFate(uint256 _rank, uint256 acesFate) public {
         uint256 contestIndex = getContestIndexFromContestRank[_rank];
@@ -349,6 +344,40 @@ contract TwentyOne is Based {
         /*************** EVENT ****************/
         emit ContestantFinishedDrawingCardsEvent(msg.sender);
         /*************** TRANSFER ****************/
-        /*************** RETURNS ****************/
+        determineWinner(_rank);
+    }
+    function determineWinner(uint256 _rank) private {
+        uint256 contestIndex = getContestIndexFromContestRank[_rank];
+        address winner;
+        if (
+            twentyOneContests[contestIndex].isContestant1Turn &&
+            twentyOneContests[contestIndex].contestant2DrawedNumbersSum > 21
+        ) {
+            winner = twentyOneContests[contestIndex].contestant1Address;
+            winner.transfer(twentyOneContests[contestIndex].collectedPrice);
+        } else if (
+            twentyOneContests[contestIndex].isContestant2Turn &&
+            twentyOneContests[contestIndex].contestant1DrawedNumbersSum > 21
+        ) {
+            winner = twentyOneContests[contestIndex].contestant2Address;
+            winner.transfer(twentyOneContests[contestIndex].collectedPrice);
+        } else if (
+            twentyOneContests[contestIndex].isContestant1Finished &&
+            twentyOneContests[contestIndex].isContestant2Finished
+        ) {
+            if (
+                twentyOneContests[contestIndex].contestant1DrawedNumbersSum >
+                twentyOneContests[contestIndex].contestant2DrawedNumbersSum
+            ) {
+                winner = twentyOneContests[contestIndex].contestant1Address;
+                winner.transfer(twentyOneContests[contestIndex].collectedPrice);
+            } else if (
+                twentyOneContests[contestIndex].contestant2DrawedNumbersSum >
+                twentyOneContests[contestIndex].contestant1DrawedNumbersSum
+            ) {
+                winner = twentyOneContests[contestIndex].contestant2Address;
+                winner.transfer(twentyOneContests[contestIndex].collectedPrice);
+            }
+        }
     }
 }
