@@ -7,6 +7,8 @@ import {VRFv2Consumer} from "./VRFv2Consumer.sol";
 // openzeppelin math
 // openzeppelin ownable (maybe)
 
+// start duration end time of contest
+
 /* PROBLEMS */
 // cant see drawed numbers for both sides
 // when 2 contestants there is give 2 errors contest is full and alredy joined
@@ -18,7 +20,7 @@ contract TwentyOne is Based {
     /******************** ERROR ********************/
     error ContestIsntExist(uint256 contestRank);
     error ContestIsFull(uint256 contestRank);
-    error ContestIsEnd(uint256 contestRank);
+    error ContestIsEnd(uint256 contestRank, address winner);
     error InvalidContestCreationPrice(
         uint256 receivedPrice,
         uint256 contestCreationPrice
@@ -45,27 +47,33 @@ contract TwentyOne is Based {
     event ContestantEntered(uint256 contestRank, address contestantAddress);
     event ContestantDrawedACard(uint256 drawedCard);
     event ContestantFinishedDrawingCardsEvent(address finisher);
+    event ContestWinnerDetermined(uint256 contestRank, address winner);
     /******************** STRUCT ********************/
     struct TwentyOneContest {
         address creator;
         uint256 rank;
         uint256 enterPrice;
         uint256 collectedPrice;
+        // instead of struct array. write 2 stuct variable
+        /** instead of */
         address contestant1Address;
         address contestant2Address;
         uint256[] contestant1DrawedNumbers;
         uint256[] contestant2DrawedNumbers;
+        uint256 contestant1DrawedNumbersSum;
+        uint256 contestant2DrawedNumbersSum;
         bool isContestant1Turn;
         bool isContestant2Turn;
         bool isContestant1Finished;
         bool isContestant2Finished;
+        /* this */
         bool end;
     }
     TwentyOneContest[] public twentyOneContests;
     /******************** CONSTRUCTOR ********************/
-    constructor() /*VRFv2ConsumerBase(11139) */ {
+    /*     constructor() VRFv2ConsumerBase(11139) {
 
-    }
+    } */
     /******************** RECEIVE ********************/
     receive() external payable {}
     /******************** FALLBACK ********************/
@@ -84,15 +92,7 @@ contract TwentyOne is Based {
     /******************** FUNCTIONS ********************/
     function createContest(uint256 _enterPrice) public payable {
         /*************** RANK CREATION ***************/
-        uint256 contestRank = uint256(
-            keccak256(
-                abi.encodePacked(
-                    tx.origin,
-                    blockhash(block.number - 1),
-                    block.timestamp
-                )
-            )
-        );
+        uint256 contestRank = increasingNumber;
         /*************** REVERT ***************/
         require(
             msg.value == Based.CONTEST_CREATION_PRICE,
@@ -111,6 +111,8 @@ contract TwentyOne is Based {
                 address(0),
                 _contestant1DrawedNumbers,
                 _contestant2DrawedNumbers,
+                0,
+                0,
                 false,
                 false,
                 false,
@@ -130,37 +132,31 @@ contract TwentyOne is Based {
     function enterContest(uint256 _rank) public payable {
         /*************** VARIABLES ****************/
         uint256 contestIndex = getContestIndexFromContestRank[_rank];
-        address _creator = twentyOneContests[contestIndex].creator;
-        bool _end = twentyOneContests[contestIndex].end;
-        address _contestant1Address = twentyOneContests[contestIndex]
-            .contestant1Address;
-        address _contestant2Address = twentyOneContests[contestIndex]
-            .contestant2Address;
-        uint256 contestEnterPrice = twentyOneContests[contestIndex].enterPrice;
         /*************** REVERT ****************/
         require(isContestExist[_rank], "ContestIsntExist");
-        require(!_end, "Contest is end");
+        require(!twentyOneContests[contestIndex].end, "Contest is end");
         require(
-            msg.sender != _contestant1Address,
+            msg.sender != twentyOneContests[contestIndex].contestant1Address,
             "InvalidContestant1Entrance"
         );
         require(
-            msg.sender != _contestant2Address,
+            msg.sender != twentyOneContests[contestIndex].contestant2Address,
             "InvalidContestant2Entrance"
         );
         // query is contestant in the contest or not first then full or not
         require(
-            _contestant1Address == address(0) ||
-                _contestant2Address == address(0),
+            twentyOneContests[contestIndex].contestant1Address == address(0) ||
+                twentyOneContests[contestIndex].contestant2Address ==
+                address(0),
             "Contest is full"
         );
         // yarışmada 2 kişi dolmadan ilk kişinin üzerine biri gelmesin hatasını alttaki 2 satrıda çözemedim if else olur gibi
         require(
-            msg.value == contestEnterPrice,
+            msg.value == twentyOneContests[contestIndex].enterPrice,
             "Invalid contest entrance price"
         );
         /*************** STRUCT ****************/
-        if (_contestant1Address == address(0)) {
+        if (twentyOneContests[contestIndex].contestant1Address == address(0)) {
             twentyOneContests[contestIndex].contestant1Address = msg.sender;
             twentyOneContests[contestIndex].isContestant1Turn = true;
             twentyOneContests[contestIndex].isContestant2Turn = false;
@@ -178,7 +174,9 @@ contract TwentyOne is Based {
         /*************** EVENT ***************/
         emit ContestantEntered(_rank, msg.sender);
         /*************** TRANSFER ***************/
-        payable(_creator).transfer((msg.value * 1) / 10);
+        payable(twentyOneContests[contestIndex].creator).transfer(
+            (msg.value * 1) / 10
+        );
     }
     function drawCard(uint256 _rank) public {
         /*************** CALLING ****************/
@@ -186,12 +184,25 @@ contract TwentyOne is Based {
         /*************** VARIABLES ****************/
         /*************** REVERT ****************/
         require(isContestExist[_rank], "ContestIsntExist");
+        require(!twentyOneContests[contestIndex].end, "ContestEnded");
         require(
             twentyOneContests[contestIndex].contestant1Address == msg.sender ||
                 twentyOneContests[contestIndex].contestant2Address ==
                 msg.sender,
             "InvalidContestantEntrance"
         );
+        /*************** DRAWING ****************/
+        uint256 _drawedNumber = /* uint256(
+            keccak256(
+                abi.encodePacked(
+                    tx.origin,
+                    blockhash(block.number - 1),
+                    block.timestamp
+                )
+            )
+        ) %  */ 10;
+        /*************** STRUCT ****************/
+        // if drawed number  == 1 önce gelicek sorguda 1 değilse hiç diğer sorgulara girmeden ekleme ve turn değiştirme yapıcak
         if (msg.sender == twentyOneContests[contestIndex].contestant1Address) {
             require(
                 !twentyOneContests[contestIndex].isContestant1Finished,
@@ -201,9 +212,25 @@ contract TwentyOne is Based {
                 twentyOneContests[contestIndex].isContestant1Turn,
                 "InvalidContestant1Turn"
             );
-        } else if (
-            msg.sender == twentyOneContests[contestIndex].contestant2Address
-        ) {
+            require(
+                (twentyOneContests[contestIndex]
+                    .contestant1DrawedNumbers
+                    .length - 1) != 1,
+                "Contestant1DrawedAce"
+            );
+            if (_drawedNumber == 1) {
+                twentyOneContests[contestIndex].isContestant1Turn = true;
+                twentyOneContests[contestIndex].isContestant2Turn = false;
+            } else {
+                twentyOneContests[contestIndex].isContestant1Turn = false;
+                twentyOneContests[contestIndex].isContestant2Turn = true;
+            }
+            twentyOneContests[contestIndex]
+                .contestant1DrawedNumbersSum += _drawedNumber;
+            twentyOneContests[contestIndex].contestant1DrawedNumbers.push(
+                _drawedNumber
+            );
+        } else {
             require(
                 !twentyOneContests[contestIndex].isContestant2Finished,
                 "Contestant2 finished drawing cards"
@@ -212,33 +239,12 @@ contract TwentyOne is Based {
                 twentyOneContests[contestIndex].isContestant2Turn,
                 "InvalidContestant2Turn"
             );
-        }
-        /*************** DRAWING ****************/
-        uint256 _drawedNumber = uint256(
-            keccak256(
-                abi.encodePacked(
-                    tx.origin,
-                    blockhash(block.number - 1),
-                    block.timestamp
-                )
-            )
-        ) % 10;
-        /*************** STRUCT ****************/
-        // if drawed number  == 1 önce gelicek sorguda 1 değilse hiç diğer sorgulara girmeden ekleme ve turn değiştirme yapıcak
-        if (msg.sender == twentyOneContests[contestIndex].contestant1Address) {
-            if (_drawedNumber == 1) {
-                twentyOneContests[contestIndex].isContestant1Turn = true;
-                twentyOneContests[contestIndex].isContestant2Turn = false;
-            } else {
-                twentyOneContests[contestIndex].isContestant1Turn = false;
-                twentyOneContests[contestIndex].isContestant2Turn = true;
-            }
-            twentyOneContests[contestIndex].contestant1DrawedNumbers.push(
-                _drawedNumber
+            require(
+                (twentyOneContests[contestIndex]
+                    .contestant2DrawedNumbers
+                    .length - 1) != 1,
+                "Contestant2DrawedAce"
             );
-        } else if (
-            msg.sender == twentyOneContests[contestIndex].contestant2Address
-        ) {
             if (_drawedNumber == 1) {
                 twentyOneContests[contestIndex].isContestant1Turn = false;
                 twentyOneContests[contestIndex].isContestant2Turn = true;
@@ -246,23 +252,28 @@ contract TwentyOne is Based {
                 twentyOneContests[contestIndex].isContestant1Turn = true;
                 twentyOneContests[contestIndex].isContestant2Turn = false;
             }
+            twentyOneContests[contestIndex]
+                .contestant2DrawedNumbersSum += _drawedNumber;
             twentyOneContests[contestIndex].contestant2DrawedNumbers.push(
                 _drawedNumber
             );
         }
-        /*************** MAPPING ***************/
         /*************** EVENT ***************/
         emit ContestantDrawedACard(_drawedNumber);
         /*************** TRANSFER ***************/
-        determineWinner(_rank);
     }
     function determineAcesFate(uint256 _rank, uint256 acesFate) public {
         uint256 contestIndex = getContestIndexFromContestRank[_rank];
         require(isContestExist[_rank], "ContestIsntExist");
-        address _contestant1Address = twentyOneContests[contestIndex]
-            .contestant1Address;
+        require(!twentyOneContests[contestIndex].end, "ContestEnded");
+        require(
+            twentyOneContests[contestIndex].contestant1Address == msg.sender ||
+                twentyOneContests[contestIndex].contestant2Address ==
+                msg.sender,
+            "InvalidContestantEntrance"
+        );
         uint256 lastDrawedNumber;
-        if (msg.sender == _contestant1Address) {
+        if (msg.sender == twentyOneContests[contestIndex].contestant1Address) {
             lastDrawedNumber =
                 twentyOneContests[contestIndex]
                     .contestant1DrawedNumbers
@@ -289,6 +300,7 @@ contract TwentyOne is Based {
             twentyOneContests[contestIndex].isContestant1Turn = true;
             twentyOneContests[contestIndex].isContestant2Turn = false;
         }
+        determineWinner(_rank);
     }
     function finishDrawing(uint256 _rank) public {
         /*************** CALLING ****************/
@@ -346,21 +358,43 @@ contract TwentyOne is Based {
         /*************** TRANSFER ****************/
         determineWinner(_rank);
     }
-    function determineWinner(uint256 _rank) private {
+    function determineWinner(uint256 _rank) public payable {
+        /*************** CONTEST INDEX ***************/
         uint256 contestIndex = getContestIndexFromContestRank[_rank];
+        /*************** REVERT ***************/
+        require(isContestExist[_rank], "ContestIsntExist");
+        /*************** VARIABLES ***************/
         address winner;
+        /*************** QUERY WINNER ***************/
         if (
             twentyOneContests[contestIndex].isContestant1Turn &&
             twentyOneContests[contestIndex].contestant2DrawedNumbersSum > 21
         ) {
             winner = twentyOneContests[contestIndex].contestant1Address;
-            winner.transfer(twentyOneContests[contestIndex].collectedPrice);
+            twentyOneContests[contestIndex].end = true;
+            payable(winner).transfer(
+                twentyOneContests[contestIndex].collectedPrice
+            );
         } else if (
             twentyOneContests[contestIndex].isContestant2Turn &&
             twentyOneContests[contestIndex].contestant1DrawedNumbersSum > 21
         ) {
             winner = twentyOneContests[contestIndex].contestant2Address;
-            winner.transfer(twentyOneContests[contestIndex].collectedPrice);
+            twentyOneContests[contestIndex].end = true;
+            emit ContestWinnerDetermined(_rank, winner);
+            payable(winner).transfer(
+                twentyOneContests[contestIndex].collectedPrice
+            );
+        } else if (
+            twentyOneContests[contestIndex].contestant1DrawedNumbersSum == 21 &&
+            twentyOneContests[contestIndex].contestant2DrawedNumbersSum == 21
+        ) {
+            winner = twentyOneContests[contestIndex].creator;
+            twentyOneContests[contestIndex].end = true;
+            emit ContestWinnerDetermined(_rank, winner);
+            payable(winner).transfer(
+                twentyOneContests[contestIndex].collectedPrice
+            );
         } else if (
             twentyOneContests[contestIndex].isContestant1Finished &&
             twentyOneContests[contestIndex].isContestant2Finished
@@ -370,13 +404,21 @@ contract TwentyOne is Based {
                 twentyOneContests[contestIndex].contestant2DrawedNumbersSum
             ) {
                 winner = twentyOneContests[contestIndex].contestant1Address;
-                winner.transfer(twentyOneContests[contestIndex].collectedPrice);
+                twentyOneContests[contestIndex].end = true;
+                emit ContestWinnerDetermined(_rank, winner);
+                payable(winner).transfer(
+                    twentyOneContests[contestIndex].collectedPrice
+                );
             } else if (
                 twentyOneContests[contestIndex].contestant2DrawedNumbersSum >
                 twentyOneContests[contestIndex].contestant1DrawedNumbersSum
             ) {
                 winner = twentyOneContests[contestIndex].contestant2Address;
-                winner.transfer(twentyOneContests[contestIndex].collectedPrice);
+                twentyOneContests[contestIndex].end = true;
+                emit ContestWinnerDetermined(_rank, winner);
+                payable(winner).transfer(
+                    twentyOneContests[contestIndex].collectedPrice
+                );
             }
         }
     }

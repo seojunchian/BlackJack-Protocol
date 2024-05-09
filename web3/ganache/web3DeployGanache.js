@@ -1,15 +1,15 @@
 const {Web3} = require("web3");
-const {abi, bytecode} = require("../out/Contest.sol/Contest.json");
-require("dotenv").config();
+const {abi, bytecode} = require("../../out/Contest.sol/Contest.json");
 
 async function main() {
 	const web3 = new Web3(
-		new Web3.providers.HttpProvider(process.env.SEPOLIA_API)
+		new Web3.providers.HttpProvider("HTTP://127.0.0.1:7545")
 	);
 
-	const signer = web3.eth.accounts.privateKeyToAccount(
-		process.env.SENDER_PRIVATE_KEY
+	const signer = await web3.eth.accounts.privateKeyToAccount(
+		"0x99d6a7752535defcac5a67c47d1631c9de9bb7ad6655072e309b14c749ce92b8"
 	);
+	web3.eth.accounts.wallet.add(signer);
 
 	const contract = new web3.eth.Contract(abi);
 	contract.options.data = bytecode.object;
@@ -19,7 +19,7 @@ async function main() {
 		arguments: [10547],
 	});
 
-	contractTx
+	await contractTx
 		.send({
 			from: signer.address,
 			gas: contractTx.estimateGas(),

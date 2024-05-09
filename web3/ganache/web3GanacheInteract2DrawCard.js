@@ -1,5 +1,5 @@
 const {Web3} = require("web3");
-const {abi, bytecode} = require("../out/TwentyOne.sol/TwentyOne.json");
+const {abi, bytecode} = require("../../out/TwentyOne.sol/TwentyOne.json");
 require("dotenv").config();
 
 async function main() {
@@ -24,13 +24,18 @@ async function main() {
 
 	const contract = new web3.eth.Contract(
 		abi,
-		"0x38a31E099D9053C66BB4A855CFddA714fbCD0C75"
+		"0x1171fec57e129859C809132B6d4a0dDE4d4E2b29"
 	);
 	contract.options.data = bytecode.object;
 	contract.handleRevert = true;
 
-	const createContest = contract.methods.twentyOneContests(0);
-	createContest.call({from: signer.address}).then(console.log);
+	const enterContest =
+		contract.methods.drawCard(
+			13351666469176267036250602307518429028696461015706776848429333008092451230493n
+		);
+	enterContest.send({from: account3.address}).on("receipt", (receipt) => {
+		console.log(receipt.events.ContestantDrawedACard.returnValues[0]);
+	});
 }
 
 main().catch((err) => {

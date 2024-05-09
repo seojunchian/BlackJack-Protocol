@@ -1,5 +1,5 @@
 const {Web3} = require("web3");
-const {abi, bytecode} = require("../out/TwentyOne.sol/TwentyOne.json");
+const {abi, bytecode} = require("../../out/TwentyOne.sol/TwentyOne.json");
 require("dotenv").config();
 
 async function main() {
@@ -30,11 +30,11 @@ async function main() {
 	contract.handleRevert = true;
 
 	const enterContest =
-		contract.methods.enterContest(
+		contract.methods.drawCard(
 			89717814153306320011181716697424560163256864414616650038987186496166826726056n
 		);
 	enterContest
-		.send({from: account2.address, value: 1e1})
+		.send({from: account2.address})
 		.on("transactionHash", function (txHash) {
 			console.log(txHash);
 		});

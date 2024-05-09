@@ -1,5 +1,5 @@
 const {Web3} = require("web3");
-const {abi, bytecode} = require("../out/TwentyOne.sol/TwentyOne.json");
+const {abi, bytecode} = require("../../out/TwentyOne.sol/TwentyOne.json");
 require("dotenv").config();
 
 async function main() {

@@ -1,5 +1,5 @@
 const {Web3} = require("web3");
-const {abi, bytecode} = require("../out/TwentyOne.sol/TwentyOne.json");
+const {abi, bytecode} = require("../../out/TwentyOne.sol/TwentyOne.json");
 require("dotenv").config();
 
 async function main() {
@@ -24,14 +24,14 @@ async function main() {
 
 	const contract = new web3.eth.Contract(
 		abi,
-		"0x0e10C3Ed98B71027E44CfB5B49fFD458F9119ef8"
+		"0x8b8d25e2406Ea4f2c36c0bd47bC2E7F90BCb6388"
 	);
 	contract.options.data = bytecode.object;
 	contract.handleRevert = true;
 
-	const determineAcesFate = contract.methods.determineAcesFate();
-	determineAcesFate
-		.send({from: signer.address})
+	const finishDrawing = contract.methods.finishDrawing(12);
+	finishDrawing
+		.send({from: account3.address})
 		.on("transactionHash", function (txHash) {
 			console.log(txHash);
 		});
