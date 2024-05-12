@@ -24,16 +24,17 @@ async function main() {
 
 	const contract = new web3.eth.Contract(
 		abi,
-		"0x4b8DAcf6026bc43eBe11917D3A1f956fE33bE97e"
+		"0x17E71fE84f70e5095947F61605971e0DCefD2E65"
 	);
 	contract.options.data = bytecode.object;
 	contract.handleRevert = true;
 
-	const createContest =
-		contract.methods.getContestIndexFromContestRank(
-			45392214961997720318586825671844885495372610908565401587305446356465571351290n
+	const createContest = contract.methods.createContest(1e18);
+	createContest
+		.send({from: signer.address, value: 1e13})
+		.then((result) =>
+			console.log(result.events.ContestCreated.returnValues[0])
 		);
-	createContest.call({from: signer.address}).then(console.log);
 }
 
 main().catch((err) => {

@@ -2,96 +2,153 @@
 pragma solidity ^0.8.24;
 
 import {Based} from "./Based.sol";
-import {VRFv2Consumer} from "./VRFv2Consumer.sol";
 
-// openzeppelin math
-// openzeppelin ownable (maybe)
+// when u reach 21 other contestan has 1 shot to draw and if lower than 21 you win
 
-// start duration end time of contest
-
-/* PROBLEMS */
-// cant see drawed numbers for both sides
-// when 2 contestants there is give 2 errors contest is full and alredy joined
-
-import {Based} from "./Based.sol";
+// write custom errors
+// at last increase CONTEST_CREATION_PRICE to 1e13
 
 contract TwentyOne is Based {
     Based public based;
     /******************** ERROR ********************/
-    error ContestIsntExist(uint256 contestRank);
-    error ContestIsFull(uint256 contestRank);
-    error ContestIsEnd(uint256 contestRank, address winner);
-    error InvalidContestCreationPrice(
-        uint256 receivedPrice,
-        uint256 contestCreationPrice
-    );
-    error InvalidContestantEntrancePrice(
-        uint256 contestRank,
-        uint256 contestPrice,
-        uint256 receivedPrice
-    );
-    error InvalidContestantEntrance(
-        uint256 contestRank,
-        address contestantAddress
-    );
-    error ContestantFinishedDrawingCardsError(address finisher);
-    //
-    error ItsNotContestantsTurn(address contestantAddress);
-    //
-    error ContestantDidntDrawAce(
-        uint256 contestRank,
-        address contestantAddress
-    );
     /******************** EVENT ********************/
     event ContestCreated(uint256 contestRank);
-    event ContestantEntered(uint256 contestRank, address contestantAddress);
-    event ContestantDrawedACard(uint256 drawedCard);
-    event ContestantFinishedDrawingCardsEvent(address finisher);
-    event ContestWinnerDetermined(uint256 contestRank, address winner);
+    event ContestantEntered(uint256 contestRank);
+    event ContestantDrawedACard(uint256 contestRank, uint256 drawedCard);
+    event ContestantFinishedDrawingCards(
+        uint256 contestRank,
+        address contestantAddress
+    );
+    event ContestWinner(uint256 contestRank, address winner);
     /******************** STRUCT ********************/
     struct TwentyOneContest {
         address creator;
+        address winner;
         uint256 rank;
         uint256 enterPrice;
         uint256 collectedPrice;
-        // instead of struct array. write 2 stuct variable
-        /** instead of */
-        address contestant1Address;
-        address contestant2Address;
-        uint256[] contestant1DrawedNumbers;
-        uint256[] contestant2DrawedNumbers;
-        uint256 contestant1DrawedNumbersSum;
-        uint256 contestant2DrawedNumbersSum;
-        bool isContestant1Turn;
-        bool isContestant2Turn;
-        bool isContestant1Finished;
-        bool isContestant2Finished;
-        /* this */
+        uint256 durationTime;
+        TwentyOneContestant contestant1;
+        TwentyOneContestant contestant2;
         bool end;
     }
     TwentyOneContest[] public twentyOneContests;
-    /******************** CONSTRUCTOR ********************/
-    /*     constructor() VRFv2ConsumerBase(11139) {
-
-    } */
+    struct TwentyOneContestant {
+        address contestant;
+        uint256 playTime;
+        uint256 drawedNumbersSum;
+        bool isTurn;
+        bool isFinished;
+        bool isAceDrawed;
+    }
     /******************** RECEIVE ********************/
     receive() external payable {}
     /******************** FALLBACK ********************/
     fallback() external payable {}
     /******************** MAPPING ********************/
-    // contest exictence
     mapping(uint256 contestRank => bool isExist) public isContestExist;
-    // contest index finding
-    uint256 increasingNumber;
+    uint256 increasingNumber = 0;
     mapping(uint256 contestRank => uint256 contestIndex)
         public getContestIndexFromContestRank;
-    // entered contests
     mapping(address contestantAddress => uint256[] contestRank)
         public enteredContests;
-
-    /******************** FUNCTIONS ********************/
+    /******************** MODIFIERs ********************/
+    modifier noOne(uint256 _rank) {
+        require(
+            false,
+            "Cant call only callable by itself in certain situations"
+        );
+        _;
+    }
+    modifier ifContestExist(uint256 _rank) {
+        require(isContestExist[_rank], "Contest isnt exist");
+        _;
+    }
+    modifier isContestEnded(uint256 _rank) {
+        uint256 contestIndex = getContestIndexFromContestRank[_rank];
+        bytes memory _winner = abi.encodePacked(
+            twentyOneContests[contestIndex].winner
+        );
+        require(
+            !twentyOneContests[contestIndex].end ||
+                twentyOneContests[contestIndex].durationTime < block.timestamp,
+            string(_winner)
+        );
+        _;
+    }
+    modifier ifContestant(uint256 _rank) {
+        uint256 contestIndex = getContestIndexFromContestRank[_rank];
+        require(
+            msg.sender == twentyOneContests[_rank].contestant1.contestant ||
+                msg.sender == twentyOneContests[_rank].contestant2.contestant,
+            "It's not a contestant"
+        );
+        _;
+    }
+    modifier ifNotContestant(uint256 _rank) {
+        uint256 contestIndex = getContestIndexFromContestRank[_rank];
+        require(
+            msg.sender !=
+                twentyOneContests[contestIndex].contestant1.contestant,
+            "Already contestant1"
+        );
+        require(
+            msg.sender !=
+                twentyOneContests[contestIndex].contestant2.contestant,
+            "Already contestant2"
+        );
+        _;
+    }
+    modifier isContestFull(uint256 _rank) {
+        uint256 contestIndex = getContestIndexFromContestRank[_rank];
+        require(
+            twentyOneContests[contestIndex].contestant1.contestant ==
+                address(0) ||
+                twentyOneContests[contestIndex].contestant2.contestant ==
+                address(0),
+            "Contest is full"
+        );
+        _;
+    }
+    modifier isFinished(uint256 _rank) {
+        uint256 contestIndex = getContestIndexFromContestRank[_rank];
+        require(
+            !twentyOneContests[contestIndex].contestant1.isFinished,
+            "Contestant 1 already finished"
+        );
+        require(
+            !twentyOneContests[contestIndex].contestant2.isFinished,
+            "Contestant 2 already finished"
+        );
+        _;
+    }
+    modifier ifAceDrawed(uint256 _rank) {
+        uint256 contestIndex = getContestIndexFromContestRank[_rank];
+        require(
+            twentyOneContests[contestIndex].contestant1.isAceDrawed ||
+                twentyOneContests[contestIndex].contestant2.isAceDrawed,
+            "Contestant didnt draw ace"
+        );
+        _;
+    }
+    modifier ifNotAceDrawed(uint256 _rank) {
+        uint256 contestIndex = getContestIndexFromContestRank[_rank];
+        require(
+            !twentyOneContests[contestIndex].contestant1.isAceDrawed,
+            "Contestant1 draw ace and cant finish before deciding its fate"
+        );
+        require(
+            !twentyOneContests[contestIndex].contestant2.isAceDrawed,
+            "Contestant2 draw ace and cant finish before deciding its fate"
+        );
+        _;
+    }
+    /******************** FUNCTIONs ********************/
     function createContest(uint256 _enterPrice) public payable {
-        /*************** RANK CREATION ***************/
+        // duration time could be top 10 minutes
+        // require it before creating it
+        // when 10 minutes pass and it doesnt start end contest
+        /*************** RANK ***************/
         uint256 contestRank = increasingNumber;
         /*************** REVERT ***************/
         require(
@@ -99,24 +156,30 @@ contract TwentyOne is Based {
             "Invalid contest creation price"
         );
         /*************** STRUCT ****************/
-        uint256[] memory _contestant1DrawedNumbers;
-        uint256[] memory _contestant2DrawedNumbers;
         twentyOneContests.push(
             TwentyOneContest(
                 msg.sender,
+                address(0),
                 contestRank,
                 _enterPrice,
                 0,
-                address(0),
-                address(0),
-                _contestant1DrawedNumbers,
-                _contestant2DrawedNumbers,
-                0,
-                0,
-                false,
-                false,
-                false,
-                false,
+                block.timestamp + 600,
+                TwentyOneContestant(
+                    address(0),
+                    block.timestamp + 10,
+                    0,
+                    false,
+                    false,
+                    false
+                ),
+                TwentyOneContestant(
+                    address(0),
+                    block.timestamp + 20,
+                    0,
+                    false,
+                    false,
+                    false
+                ),
                 false
             )
         );
@@ -129,296 +192,306 @@ contract TwentyOne is Based {
         /*************** TRANSFER ***************/
         payable(Based.CONTRACT_OWNER).transfer(msg.value);
     }
-    function enterContest(uint256 _rank) public payable {
-        /*************** VARIABLES ****************/
+    function enterContest(
+        uint256 _rank
+    )
+        public
+        payable
+        ifContestExist(_rank)
+        isContestEnded(_rank)
+        isContestFull(_rank)
+        ifNotContestant(_rank)
+    {
+        /*************** CONTEST INDEX ****************/
         uint256 contestIndex = getContestIndexFromContestRank[_rank];
         /*************** REVERT ****************/
-        require(isContestExist[_rank], "ContestIsntExist");
-        require(!twentyOneContests[contestIndex].end, "Contest is end");
-        require(
-            msg.sender != twentyOneContests[contestIndex].contestant1Address,
-            "InvalidContestant1Entrance"
-        );
-        require(
-            msg.sender != twentyOneContests[contestIndex].contestant2Address,
-            "InvalidContestant2Entrance"
-        );
-        // query is contestant in the contest or not first then full or not
-        require(
-            twentyOneContests[contestIndex].contestant1Address == address(0) ||
-                twentyOneContests[contestIndex].contestant2Address ==
-                address(0),
-            "Contest is full"
-        );
-        // yarışmada 2 kişi dolmadan ilk kişinin üzerine biri gelmesin hatasını alttaki 2 satrıda çözemedim if else olur gibi
         require(
             msg.value == twentyOneContests[contestIndex].enterPrice,
             "Invalid contest entrance price"
         );
-        /*************** STRUCT ****************/
-        if (twentyOneContests[contestIndex].contestant1Address == address(0)) {
-            twentyOneContests[contestIndex].contestant1Address = msg.sender;
-            twentyOneContests[contestIndex].isContestant1Turn = true;
-            twentyOneContests[contestIndex].isContestant2Turn = false;
-            twentyOneContests[contestIndex].isContestant1Finished = false;
-        } else {
-            twentyOneContests[contestIndex].contestant2Address = msg.sender;
-            twentyOneContests[contestIndex].isContestant1Turn = true;
-            twentyOneContests[contestIndex].isContestant2Turn = false;
-            twentyOneContests[contestIndex].isContestant2Finished = false;
+        /*************** CONTESTANT1 QUERY ****************/
+        if (
+            twentyOneContests[contestIndex].contestant1.contestant == address(0)
+        ) {
+            /*************** CONTESTANT1 STRUCT ****************/
+            twentyOneContests[contestIndex].contestant1.contestant = msg.sender;
+            twentyOneContests[contestIndex].contestant1.isTurn = true;
         }
-        twentyOneContests[contestIndex].collectedPrice += ((msg.value * 9) /
-            10);
+        /*************** CONTESTANT2 QUERY ****************/
+        else {
+            /*************** CONTESTANT2 STRUCT ****************/
+            twentyOneContests[contestIndex].contestant2.contestant = msg.sender;
+            twentyOneContests[contestIndex].contestant1.playTime =
+                block.timestamp +
+                30;
+            twentyOneContests[contestIndex].durationTime += 600;
+        }
+        /*************** STRUCT ****************/
+        twentyOneContests[contestIndex].collectedPrice += (msg.value * 9) / 10;
         /*************** MAPPING ***************/
         enteredContests[msg.sender].push(_rank);
         /*************** EVENT ***************/
-        emit ContestantEntered(_rank, msg.sender);
+        emit ContestantEntered(_rank);
         /*************** TRANSFER ***************/
         payable(twentyOneContests[contestIndex].creator).transfer(
             (msg.value * 1) / 10
         );
     }
-    function drawCard(uint256 _rank) public {
-        /*************** CALLING ****************/
+    function drawCard(
+        uint256 _rank
+    )
+        public
+        ifContestExist(_rank)
+        isContestEnded(_rank)
+        ifContestant(_rank)
+        isFinished(_rank)
+        ifNotAceDrawed(_rank)
+    {
+        /*************** CONTEST INDEX ****************/
         uint256 contestIndex = getContestIndexFromContestRank[_rank];
-        /*************** VARIABLES ****************/
-        /*************** REVERT ****************/
-        require(isContestExist[_rank], "ContestIsntExist");
-        require(!twentyOneContests[contestIndex].end, "ContestEnded");
-        require(
-            twentyOneContests[contestIndex].contestant1Address == msg.sender ||
-                twentyOneContests[contestIndex].contestant2Address ==
-                msg.sender,
-            "InvalidContestantEntrance"
-        );
         /*************** DRAWING ****************/
-        uint256 _drawedNumber = /* uint256(
+        uint256 _drawedNumber = uint256(
             keccak256(
-                abi.encodePacked(
-                    tx.origin,
-                    blockhash(block.number - 1),
-                    block.timestamp
-                )
+                abi.encodePacked(block.timestamp, blockhash(0), block.number)
             )
-        ) %  */ 10;
-        /*************** STRUCT ****************/
-        // if drawed number  == 1 önce gelicek sorguda 1 değilse hiç diğer sorgulara girmeden ekleme ve turn değiştirme yapıcak
-        if (msg.sender == twentyOneContests[contestIndex].contestant1Address) {
+        ) % 10;
+        /*************** CONTESTANT1 QUERY ****************/
+        if (
+            msg.sender == twentyOneContests[contestIndex].contestant1.contestant
+        ) {
+            /*************** CONTESTANT1 REVERT ****************/
             require(
-                !twentyOneContests[contestIndex].isContestant1Finished,
-                "Contestant1 finished drawing cards"
+                twentyOneContests[contestIndex].contestant1.isTurn,
+                "It's not contestant1's turn"
             );
-            require(
-                twentyOneContests[contestIndex].isContestant1Turn,
-                "InvalidContestant1Turn"
-            );
-            require(
-                (twentyOneContests[contestIndex]
-                    .contestant1DrawedNumbers
-                    .length - 1) != 1,
-                "Contestant1DrawedAce"
-            );
-            if (_drawedNumber == 1) {
-                twentyOneContests[contestIndex].isContestant1Turn = true;
-                twentyOneContests[contestIndex].isContestant2Turn = false;
-            } else {
-                twentyOneContests[contestIndex].isContestant1Turn = false;
-                twentyOneContests[contestIndex].isContestant2Turn = true;
+            if (
+                twentyOneContests[contestIndex].contestant1.playTime <
+                block.timestamp
+            ) {
+                twentyOneContests[contestIndex].contestant2.isTurn = true;
+                twentyOneContests[contestIndex].contestant1.isTurn = false;
+                twentyOneContests[contestIndex].contestant2.playTime =
+                    block.timestamp +
+                    10;
             }
+            /*************** CONTESTANT1 DRAWED NUMBER'S FATE ****************/
+            if (_drawedNumber == 1) {
+                twentyOneContests[contestIndex].contestant1.isAceDrawed = true;
+                twentyOneContests[contestIndex].contestant1.playTime =
+                    block.timestamp +
+                    30;
+            }
+            if (_drawedNumber == 0) _drawedNumber = 10;
+            /*************** CONTESTANT1 STRUCT ****************/
+            twentyOneContests[contestIndex].contestant2.isTurn = true;
+            twentyOneContests[contestIndex].contestant1.isTurn = false;
             twentyOneContests[contestIndex]
-                .contestant1DrawedNumbersSum += _drawedNumber;
-            twentyOneContests[contestIndex].contestant1DrawedNumbers.push(
-                _drawedNumber
-            );
-        } else {
+                .contestant1
+                .drawedNumbersSum += _drawedNumber;
+        }
+        /*************** CONTESTANT1 QUERY ****************/
+        else {
+            /*************** CONTESTANT1 REVERT ****************/
             require(
-                !twentyOneContests[contestIndex].isContestant2Finished,
-                "Contestant2 finished drawing cards"
-            );
-            require(
-                twentyOneContests[contestIndex].isContestant2Turn,
+                twentyOneContests[contestIndex].contestant2.isTurn,
                 "InvalidContestant2Turn"
             );
-            require(
-                (twentyOneContests[contestIndex]
-                    .contestant2DrawedNumbers
-                    .length - 1) != 1,
-                "Contestant2DrawedAce"
-            );
-            if (_drawedNumber == 1) {
-                twentyOneContests[contestIndex].isContestant1Turn = false;
-                twentyOneContests[contestIndex].isContestant2Turn = true;
-            } else {
-                twentyOneContests[contestIndex].isContestant1Turn = true;
-                twentyOneContests[contestIndex].isContestant2Turn = false;
+            if (
+                twentyOneContests[contestIndex].contestant2.playTime <
+                block.timestamp
+            ) {
+                twentyOneContests[contestIndex].contestant1.isTurn = true;
+                twentyOneContests[contestIndex].contestant2.isTurn = false;
+                twentyOneContests[contestIndex].contestant1.playTime =
+                    block.timestamp +
+                    10;
             }
+            /*************** CONTESTANT1 DRAWED NUMBER'S FATE ****************/
+            if (_drawedNumber == 1) {
+                twentyOneContests[contestIndex].contestant2.isAceDrawed = true;
+                twentyOneContests[contestIndex].contestant2.playTime +=
+                    block.timestamp +
+                    30;
+            }
+            if (_drawedNumber == 0) _drawedNumber = 10;
+            /*************** CONTESTANT1 STRUCT ****************/
+            twentyOneContests[contestIndex].contestant1.isTurn = true;
+            twentyOneContests[contestIndex].contestant2.isTurn = false;
             twentyOneContests[contestIndex]
-                .contestant2DrawedNumbersSum += _drawedNumber;
-            twentyOneContests[contestIndex].contestant2DrawedNumbers.push(
-                _drawedNumber
-            );
+                .contestant2
+                .drawedNumbersSum += _drawedNumber;
         }
+        /*************** STRUCT ***************/
+        // do it to others
+        twentyOneContests[contestIndex].durationTime += 30;
         /*************** EVENT ***************/
-        emit ContestantDrawedACard(_drawedNumber);
-        /*************** TRANSFER ***************/
+        emit ContestantDrawedACard(_rank, _drawedNumber);
+        /*************** WINNER ***************/
+        determineWinner(_rank);
     }
-    function determineAcesFate(uint256 _rank, uint256 acesFate) public {
+    function determineAcesFate(
+        uint256 _rank,
+        uint256 acesFate
+    )
+        public
+        ifContestExist(_rank)
+        isContestEnded(_rank)
+        ifContestant(_rank)
+        ifAceDrawed(_rank)
+    {
+        /*************** CONTEST INDEX ****************/
         uint256 contestIndex = getContestIndexFromContestRank[_rank];
-        require(isContestExist[_rank], "ContestIsntExist");
-        require(!twentyOneContests[contestIndex].end, "ContestEnded");
-        require(
-            twentyOneContests[contestIndex].contestant1Address == msg.sender ||
-                twentyOneContests[contestIndex].contestant2Address ==
-                msg.sender,
-            "InvalidContestantEntrance"
-        );
-        uint256 lastDrawedNumber;
-        if (msg.sender == twentyOneContests[contestIndex].contestant1Address) {
-            lastDrawedNumber =
-                twentyOneContests[contestIndex]
-                    .contestant1DrawedNumbers
-                    .length -
-                1;
-            require(lastDrawedNumber == 1, "Contestant1DidntDrawAce");
+        /*************** CONTESTANT1 QUERY ****************/
+        if (
+            msg.sender == twentyOneContests[contestIndex].contestant1.contestant
+        ) {
+            /*************** CONTESTANT1 REVERT ****************/
+            require(
+                twentyOneContests[contestIndex].contestant1.isAceDrawed == true,
+                "Contestant1DidntDrawAce"
+            );
+            /*************** CONTESTANT1 ACE'S FATE ****************/
             if (acesFate == 11)
-                twentyOneContests[contestIndex].contestant1DrawedNumbers[
-                    lastDrawedNumber
-                ] = 11;
-            twentyOneContests[contestIndex].isContestant1Turn = false;
-            twentyOneContests[contestIndex].isContestant2Turn = true;
-        } else {
-            lastDrawedNumber =
                 twentyOneContests[contestIndex]
-                    .contestant2DrawedNumbers
-                    .length -
-                1;
-            require(lastDrawedNumber == 1, "Contestant2DidntDrawAce");
+                    .contestant1
+                    .drawedNumbersSum += 10;
+            /*************** CONTESTANT1 STRUCT ****************/
+            twentyOneContests[contestIndex].contestant1.isAceDrawed = false;
+            twentyOneContests[contestIndex].contestant2.playTime += 30;
+            twentyOneContests[contestIndex].contestant1.playTime = block
+                .timestamp;
+        }
+        /*************** CONTESTANT2 QUERY ****************/
+        else {
+            /*************** CONTESTANT1 REVERT ****************/
+            require(
+                twentyOneContests[contestIndex].contestant2.isAceDrawed == true,
+                "Contestant2DidntDrawAce"
+            );
+            /*************** CONTESTANT1 ACE'S FATE ****************/
             if (acesFate == 11)
-                twentyOneContests[contestIndex].contestant2DrawedNumbers[
-                    lastDrawedNumber
-                ] = 11;
-            twentyOneContests[contestIndex].isContestant1Turn = true;
-            twentyOneContests[contestIndex].isContestant2Turn = false;
+                twentyOneContests[contestIndex]
+                    .contestant2
+                    .drawedNumbersSum += 10;
+            /*************** CONTESTANT1 STRUCT ****************/
+            twentyOneContests[contestIndex].contestant2.isAceDrawed = false;
         }
         determineWinner(_rank);
     }
-    function finishDrawing(uint256 _rank) public {
-        /*************** CALLING ****************/
+    function finishDrawing(
+        uint256 _rank
+    )
+        public
+        ifContestExist(_rank)
+        isContestEnded(_rank)
+        ifContestant(_rank)
+        isFinished(_rank)
+        ifNotAceDrawed(_rank)
+    {
+        /*************** CONTEST INDEX ****************/
         uint256 contestIndex = getContestIndexFromContestRank[_rank];
-        /*************** REVERT ****************/
-        require(isContestExist[_rank], "ContestIsntExist");
-        require(
-            twentyOneContests[contestIndex].contestant1Address == msg.sender ||
-                twentyOneContests[contestIndex].contestant2Address ==
-                msg.sender,
-            "InvalidContestantEntrance"
-        );
-        if (msg.sender == twentyOneContests[contestIndex].contestant1Address) {
+        /*************** CONTESTANT1 QUERY ****************/
+        if (
+            msg.sender == twentyOneContests[contestIndex].contestant1.contestant
+        ) {
+            /*************** CONTESTANT1 REVERT ****************/
             require(
-                twentyOneContests[contestIndex]
-                    .contestant1DrawedNumbers
-                    .length -
-                    1 !=
-                    1,
-                "Contestant draw ace and cant finish before deciding its fate"
-            );
-            require(
-                !twentyOneContests[contestIndex].isContestant1Finished,
-                "Contestant1 finished drawing cards"
-            );
-            require(
-                twentyOneContests[contestIndex].isContestant1Turn,
+                twentyOneContests[contestIndex].contestant1.isTurn,
                 "InvalidContestant1Turn"
             );
-        } else {
+            /*************** CONTESTANT1 STRUCT ****************/
+            twentyOneContests[contestIndex].contestant2.isTurn = true;
+            twentyOneContests[contestIndex].contestant1.isTurn = false;
+            twentyOneContests[contestIndex].contestant1.isFinished = true;
+        }
+        /*************** CONTESTANT2 QUERY ****************/
+        else {
+            /*************** CONTESTANT2 REVERT ****************/
             require(
-                twentyOneContests[contestIndex]
-                    .contestant2DrawedNumbers
-                    .length -
-                    1 !=
-                    1,
-                "Contestant draw ace and cant finish before deciding its fate"
-            );
-            require(
-                !twentyOneContests[contestIndex].isContestant2Finished,
-                "Contestant2 finished drawing cards"
-            );
-            require(
-                twentyOneContests[contestIndex].isContestant2Turn,
+                twentyOneContests[contestIndex].contestant2.isTurn,
                 "InvalidContestant2Turn"
             );
+            /*************** CONTESTANT2 STRUCT ****************/
+            twentyOneContests[contestIndex].contestant1.isTurn = true;
+            twentyOneContests[contestIndex].contestant2.isTurn = false;
+            twentyOneContests[contestIndex].contestant2.isFinished = true;
         }
-        /*************** STRUCT ****************/
-        if (msg.sender == twentyOneContests[contestIndex].contestant1Address)
-            twentyOneContests[contestIndex].isContestant1Finished = true;
-        else twentyOneContests[contestIndex].isContestant2Finished = true;
-        /*************** MAPPING ****************/
         /*************** EVENT ****************/
-        emit ContestantFinishedDrawingCardsEvent(msg.sender);
-        /*************** TRANSFER ****************/
+        emit ContestantFinishedDrawingCards(_rank, msg.sender);
+        /*************** WINNER ****************/
         determineWinner(_rank);
     }
-    function determineWinner(uint256 _rank) public payable {
+    function determineWinner(uint256 _rank) private returns (address winner) {
         /*************** CONTEST INDEX ***************/
         uint256 contestIndex = getContestIndexFromContestRank[_rank];
-        /*************** REVERT ***************/
-        require(isContestExist[_rank], "ContestIsntExist");
         /*************** VARIABLES ***************/
-        address winner;
         /*************** QUERY WINNER ***************/
-        if (
-            twentyOneContests[contestIndex].isContestant1Turn &&
-            twentyOneContests[contestIndex].contestant2DrawedNumbersSum > 21
-        ) {
-            winner = twentyOneContests[contestIndex].contestant1Address;
+        if (twentyOneContests[contestIndex].contestant1.drawedNumbersSum > 21) {
+            winner = twentyOneContests[contestIndex].contestant2.contestant;
             twentyOneContests[contestIndex].end = true;
+            twentyOneContests[contestIndex].winner = winner;
+            twentyOneContests[contestIndex].durationTime = 0;
+            emit ContestWinner(_rank, winner);
             payable(winner).transfer(
                 twentyOneContests[contestIndex].collectedPrice
             );
+            return winner;
         } else if (
-            twentyOneContests[contestIndex].isContestant2Turn &&
-            twentyOneContests[contestIndex].contestant1DrawedNumbersSum > 21
+            twentyOneContests[contestIndex].contestant2.drawedNumbersSum > 21
         ) {
-            winner = twentyOneContests[contestIndex].contestant2Address;
+            winner = twentyOneContests[contestIndex].contestant1.contestant;
             twentyOneContests[contestIndex].end = true;
-            emit ContestWinnerDetermined(_rank, winner);
+            twentyOneContests[contestIndex].winner = winner;
+            twentyOneContests[contestIndex].durationTime = 0;
+            emit ContestWinner(_rank, winner);
             payable(winner).transfer(
                 twentyOneContests[contestIndex].collectedPrice
             );
+            return winner;
         } else if (
-            twentyOneContests[contestIndex].contestant1DrawedNumbersSum == 21 &&
-            twentyOneContests[contestIndex].contestant2DrawedNumbersSum == 21
+            twentyOneContests[contestIndex].contestant1.drawedNumbersSum ==
+            21 &&
+            twentyOneContests[contestIndex].contestant2.drawedNumbersSum == 21
         ) {
             winner = twentyOneContests[contestIndex].creator;
             twentyOneContests[contestIndex].end = true;
-            emit ContestWinnerDetermined(_rank, winner);
+            twentyOneContests[contestIndex].winner = winner;
+            twentyOneContests[contestIndex].durationTime = 0;
+            emit ContestWinner(_rank, winner);
             payable(winner).transfer(
                 twentyOneContests[contestIndex].collectedPrice
             );
+            return winner;
         } else if (
-            twentyOneContests[contestIndex].isContestant1Finished &&
-            twentyOneContests[contestIndex].isContestant2Finished
+            twentyOneContests[contestIndex].contestant1.isFinished &&
+            twentyOneContests[contestIndex].contestant2.isFinished
         ) {
             if (
-                twentyOneContests[contestIndex].contestant1DrawedNumbersSum >
-                twentyOneContests[contestIndex].contestant2DrawedNumbersSum
+                twentyOneContests[contestIndex].contestant1.drawedNumbersSum >
+                twentyOneContests[contestIndex].contestant2.drawedNumbersSum
             ) {
-                winner = twentyOneContests[contestIndex].contestant1Address;
+                winner = twentyOneContests[contestIndex].contestant1.contestant;
                 twentyOneContests[contestIndex].end = true;
-                emit ContestWinnerDetermined(_rank, winner);
+                twentyOneContests[contestIndex].winner = winner;
+                twentyOneContests[contestIndex].durationTime = 0;
+                emit ContestWinner(_rank, winner);
                 payable(winner).transfer(
                     twentyOneContests[contestIndex].collectedPrice
                 );
+                return winner;
             } else if (
-                twentyOneContests[contestIndex].contestant2DrawedNumbersSum >
-                twentyOneContests[contestIndex].contestant1DrawedNumbersSum
+                twentyOneContests[contestIndex].contestant2.drawedNumbersSum >
+                twentyOneContests[contestIndex].contestant1.drawedNumbersSum
             ) {
-                winner = twentyOneContests[contestIndex].contestant2Address;
+                winner = twentyOneContests[contestIndex].contestant2.contestant;
                 twentyOneContests[contestIndex].end = true;
-                emit ContestWinnerDetermined(_rank, winner);
+                twentyOneContests[contestIndex].winner = winner;
+                twentyOneContests[contestIndex].durationTime = 0;
+                emit ContestWinner(_rank, winner);
                 payable(winner).transfer(
                     twentyOneContests[contestIndex].collectedPrice
                 );
+                return winner;
             }
         }
     }

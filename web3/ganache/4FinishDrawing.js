@@ -24,17 +24,17 @@ async function main() {
 
 	const contract = new web3.eth.Contract(
 		abi,
-		"0x1171fec57e129859C809132B6d4a0dDE4d4E2b29"
+		"0xf2A844D7666068DA6997c3FF59d6B62D0Be6cC12"
 	);
 	contract.options.data = bytecode.object;
 	contract.handleRevert = true;
 
-	const createContest = contract.methods.createContest(1e18);
-	createContest
-		.send({from: signer.address, value: 1e13})
-		.then((result) =>
-			console.log(result.events.ContestCreated.returnValues[0])
-		);
+	const finishDrawing = contract.methods.finishDrawing(0);
+	finishDrawing
+		.send({from: account3.address})
+		.on("transactionHash", function (txHash) {
+			console.log(txHash);
+		});
 }
 
 main().catch((err) => {

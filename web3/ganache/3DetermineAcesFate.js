@@ -24,14 +24,14 @@ async function main() {
 
 	const contract = new web3.eth.Contract(
 		abi,
-		"0x0e10C3Ed98B71027E44CfB5B49fFD458F9119ef8"
+		"0xEFE07257792977CcA49eCcf36cc5B8742Cb80E73"
 	);
 	contract.options.data = bytecode.object;
 	contract.handleRevert = true;
 
-	const determineAcesFate = contract.methods.determineAcesFate();
+	const determineAcesFate = contract.methods.determineAcesFate(0, 11);
 	determineAcesFate
-		.send({from: signer.address})
+		.send({from: account3.address})
 		.on("transactionHash", function (txHash) {
 			console.log(txHash);
 		});

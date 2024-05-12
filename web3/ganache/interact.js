@@ -24,18 +24,13 @@ async function main() {
 
 	const contract = new web3.eth.Contract(
 		abi,
-		"0x1171fec57e129859C809132B6d4a0dDE4d4E2b29"
+		"0xd7BF261485453954dAF0f6AD3239D2CAcB6d1813"
 	);
 	contract.options.data = bytecode.object;
 	contract.handleRevert = true;
 
-	const enterContest =
-		contract.methods.drawCard(
-			13351666469176267036250602307518429028696461015706776848429333008092451230493n
-		);
-	enterContest.send({from: account3.address}).on("receipt", (receipt) => {
-		console.log(receipt.events.ContestantDrawedACard.returnValues[0]);
-	});
+	const createContest = contract.methods.twentyOneContests(0);
+	createContest.call({from: signer.address}).then(console.log);
 }
 
 main().catch((err) => {
