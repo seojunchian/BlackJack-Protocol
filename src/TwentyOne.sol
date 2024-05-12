@@ -215,12 +215,12 @@ contract TwentyOne is Based {
         ) {
             /*************** CONTESTANT1 STRUCT ****************/
             twentyOneContests[contestIndex].contestant1.contestant = msg.sender;
-            twentyOneContests[contestIndex].contestant1.isTurn = true;
         }
         /*************** CONTESTANT2 QUERY ****************/
         else {
             /*************** CONTESTANT2 STRUCT ****************/
             twentyOneContests[contestIndex].contestant2.contestant = msg.sender;
+            twentyOneContests[contestIndex].contestant1.isTurn = true;
             twentyOneContests[contestIndex].contestant1.playTime =
                 block.timestamp +
                 30;
